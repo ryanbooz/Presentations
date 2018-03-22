@@ -1,11 +1,15 @@
 use master
-go
--- create a stored proc to turn on the trace flags
-IF OBJECT_ID('usp_StartupTraceFlagsOn') IS NOT NULL
-    DROP PROC usp_StartupTraceFlagsOn;
 GO
 
-CREATE PROC usp_StartupTraceFlagsOn
+-- If the stored procedure doesn't exist, create a stub
+-- SQL 2016 and above could use 'CREATE OR ALTER', but this is 
+-- backwards compatible 
+-- For more details: https://www.softwareandbooz.com/drop-create-vs-create-alter-in-sql-server/
+IF OBJECT_ID('usp_StartupTraceFlagsOn', 'P') IS NULL
+	EXEC ('CREATE PROC usp_StartupTraceFlagsOn AS SELECT ''stub version, to be replaced''') 
+GO
+
+ALTER PROC usp_StartupTraceFlagsOn
 AS
 BEGIN
 	--DBCC TRACEON (1117, -1); -- file group growth happens at the same time and with the same time, specifically tempdb.  not used for us at this time.
@@ -16,10 +20,15 @@ BEGIN
 	DBCC TRACEON (2371, -1); -- update statistics more frequently than the 20% threshold for larger tables
 END
 
+GRANT EXECUTE TO PUBLIC
 
--- set the stored proc to run at SQL Server start-up
+-- Set the stored proc to run at SQL Server start-up
 exec sp_procoption N'usp_StartupTraceFlagsOn', 'startup', 'on';
 
+-- Execute the stored procedure once so that the settings
+-- takes effect now. If the server restarts, the PROC is now
+-- set to run on startup.
 EXEC usp_StartupTraceFlagsOn;
 
+-- Output the settings now that the PROC has been run
 DBCC TRACESTATUS(-1);
