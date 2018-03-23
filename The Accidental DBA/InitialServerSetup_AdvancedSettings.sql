@@ -12,6 +12,9 @@ DECLARE @numberOfProcessors INT;
 
 /*
   Get the number of cores and set the value based on that.  
+
+  This is just a starting point. Adjust as needed after examining workloads.
+
 */
 SELECT @numberOfProcessors = COUNT(*) FROM sys.dm_os_schedulers WHERE scheduler_id < 255; 
 
