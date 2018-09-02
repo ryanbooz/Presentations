@@ -6,12 +6,13 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 
 ---
 
-### [__The Agile DBA - SQL Server DevOps with SSDT__](https://github.com/ryanbooz/presentations/tree/master/The%20%Agile%20%DBA%20%-%20%SQL%20%Server%20%DevOps%20%with%20%SSDT) ###
+### [__The Agile DBA - SQL Server DevOps with SSDT__](https://github.com/ryanbooz/presentations/tree/master/Service%20Broker%20-%20Async%20in%20the%20DB) ###
  * GroupBy.org (June 2018)
  * Pittsburgh SQL Server User Group (August 2018)
 
 ### [__Service Broker - Async in the DB__](https://github.com/ryanbooz/presentations/tree/master/Service%20Broker%20-%20Async%20in%20the%20DB) ###
  * SQL Saturday Philly (May 2017)
+ * PASS Summit 2018
 
 ### [__The Accidental DBA__](https://github.com/ryanbooz/presentations/tree/master/The%20Accidental%20DBA) ###
  * SQL Saturday Philly (May 2017)
