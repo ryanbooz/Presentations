@@ -12,6 +12,11 @@ Keys to success with this script:
 2. SqlPackage.exe must be available on the deployment machine. This is a cross-platform
    tool that can be installed separately, apart from SQL Server or VS tooling.
 
+3. There is a specific publish profile referenced below for the demos. This is an 
+   essential key to having consistent deployment rules. When you make a publish
+   profile, make sure to select "copy always" from the file properties so that it
+   will be copied into the same directory as the DACPAC and can be referenced here. 
+
 All other parameters help determine how to build the connection string and call SqlPackage
 to do the deployment.
 
