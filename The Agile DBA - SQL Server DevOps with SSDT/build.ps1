@@ -28,6 +28,7 @@ parameters and options you can pass in or appent to actual execution of MSBuild 
 behavior you would like.
 
 #>
+
 $SSDTToolsPath = $PSScriptRoot + "\build\Microsoft.Data.Tools.Msbuild.10.0.61804.210\lib\net46"
 $env:SQLDBExtensionsRefPath=$SSDTToolsPath
 $env:SSDTPath=$SSDTToolsPath
