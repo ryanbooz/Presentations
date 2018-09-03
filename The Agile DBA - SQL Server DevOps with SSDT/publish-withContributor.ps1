@@ -1,3 +1,11 @@
+<#
+See the other publish.ps1 script for more details.
+
+The only modification in this script was the addition of a deployment contributor
+on the SqlPackage command line options for a demonstration of how contributors
+can be referenced at runtime.
+
+#>
 param(
     [string] $WorkingDir,
     [string] $ServerName,
@@ -38,6 +46,7 @@ if($ServerName)
     }
 }
 
+# The added Deployment Contributor parameter to SqlPackage
 if([string]::IsNullOrWhiteSpace($connectionString))
 {
     $ $SQLPackageExe "/a:Publish" ("/pr:" + $PublishProfile) ("/sf:" + $DacpacFile) "/p:AdditionalDeploymentContributors=StopFillFactorContributor"
