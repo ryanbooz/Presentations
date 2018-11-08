@@ -13,7 +13,7 @@ GO
 	pass it to another SPROC to process the staging tables for objects effected by modifying
 	this bill in some way.
 */
-CREATE PROCEDURE SBActivated_HelloWorldQueue
+CREATE OR ALTER PROCEDURE [Application].[SBActivated_HelloWorldQueue]
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -78,7 +78,7 @@ GO
    Create the SPROC that will close out the conversation
    when the target queue ends the conversation
 */
-CREATE PROCEDURE SBActivated_MonologSenderQueue
+CREATE OR ALTER PROCEDURE [Application].[SBActivated_MonologueSenderQueue]
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -100,7 +100,7 @@ BEGIN
                     @conversation_handle = conversation_handle,
                     @message_body = message_body,
                     @message_type_name = message_type_name
-                    FROM MonologSenderQueue
+                    FROM MonologueSenderQueue
             ), TIMEOUT 5000;
 
 			IF (@conversation_handle is not null)
@@ -129,8 +129,6 @@ BEGIN
 					select @Code=(SELECT @errorXML.value('(/ns:Error/ns:Code)[1]','int')),
 						@Description=(SELECT @errorXML.value('(/ns:Error/ns:Description)[1]','nvarchar(3000)'));
 
-					--INSERT INTO SBErrorLog (service_contract_name, errorCode, errorDescription) VALUES (@service_contract_name, @Code, @Description);
-
 					END CONVERSATION @conversation_handle;
 
 				END
@@ -154,11 +152,6 @@ BEGIN
 				DECLARE @errorText NVARCHAR(3000) = CAST(@errorXML AS NVARCHAR(3000));
 
 				/*
-				  For future reference.  Simple table to store returned error
-				*/
-				--INSERT INTO SBErrorLog (service_contract_name, errorCode, errorDescription) VALUES (@service_contract_name, -999, @errorText);
-
-				/*
 				   Because this is a monologue, we end the conversation here anyway, having logged the error above. In the future,
 				   this could be extended to do more conversation or creating a better message back to the queue to do more work.
 				*/
@@ -171,18 +164,18 @@ GO
 
 
 /*
-  Let's setup our first SSB conversation.
+  Let's setup our second SSB conversation.
 */
 
 /*
 
- This is the initiator queue. When using SSB as a pure monolog queue, somebody
+ This is the initiator queue. When using SSB as a pure Monologue queue, somebody
  needs to be responsible for closing out the conversations and handling any errors
 */
-CREATE QUEUE [MonologSenderQueue] WITH
+CREATE QUEUE [MonologueSenderQueue] WITH
 		 STATUS = ON,
 		 RETENTION = OFF,
-		 ACTIVATION ( PROCEDURE_NAME = [dbo].[SBActivated_MonologSenderQueue],
+		 ACTIVATION ( PROCEDURE_NAME = [Application].[SBActivated_MonologueSenderQueue],
 					  MAX_QUEUE_READERS = 10,
 					  EXECUTE AS OWNER,
 					  STATUS = OFF
@@ -194,7 +187,7 @@ GO
   Minimally we need a service on a queue.  Messages are sent to a queue through
   a service (remember, they're the "traffic cop")
 */
-CREATE SERVICE [MonologSenderService] ON QUEUE [MonologSenderQueue]
+CREATE SERVICE [MonologueSenderService] ON QUEUE [MonologueSenderQueue]
 GO
 
 /*
@@ -203,7 +196,7 @@ GO
 CREATE QUEUE [HelloWorldQueue] WITH 
 		STATUS = ON,
 		RETENTION = OFF,
-		 ACTIVATION ( PROCEDURE_NAME = [dbo].[SBActivated_HelloWorldQueue],
+		 ACTIVATION ( PROCEDURE_NAME = [Application].[SBActivated_HelloWorldQueue],
 					  MAX_QUEUE_READERS = 1,
 					  EXECUTE AS OWNER,
 					  STATUS = OFF
@@ -233,19 +226,12 @@ CREATE SERVICE [HelloWorldService] ON QUEUE [HelloWorldQueue] ([HelloWorldContra
 GO
 
 /*
-  Make sure SSB is disabled to demonstrate transmission queue
-
-ALTER DATABASE [WideWorldImporters] SET DISABLE_BROKER
-
-*/
-
-/*
   Let's send the first message!
 */
 DECLARE @InitDlgHandle UNIQUEIDENTIFIER
 											
 BEGIN DIALOG @InitDlgHandle
-	FROM SERVICE [MonologSenderService]
+	FROM SERVICE [MonologueSenderService]
 	TO SERVICE N'HelloWorldService', 'CURRENT DATABASE'
 	ON CONTRACT [HelloWorldContract]
 	WITH ENCRYPTION = OFF;
@@ -260,7 +246,7 @@ SEND ON CONVERSATION @InitDlgHandle
   HUH?
 */
 SELECT *, CAST(message_body AS XML) FROM HelloWorldQueue WITH (NOLOCK)
-SELECT * FROM MonologSenderQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
 
 /*
   Conversation_endpoints shows
@@ -269,31 +255,31 @@ SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 
 
 
-EXEC [dbo].[SBActivated_HelloWorldQueue]
+EXEC [Application].[SBActivated_HelloWorldQueue]
 
 /*
   Check progress.  Note that the STATE has changed on the conversation
 */
 SELECT * FROM HelloWorldQueue WITH (NOLOCK)
-SELECT * FROM MonologSenderQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
 
 SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 
 
-EXEC [dbo].[SBActivated_MonologSenderQueue]
+EXEC [Application].[SBActivated_MonologueSenderQueue]
 
 /*
   Check progress.  Note that the STATE has changed on the conversation again
 */
 SELECT * FROM HelloWorldQueue WITH (NOLOCK)
-SELECT * FROM MonologSenderQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
 
 SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 
 /*
   Alter the database to set the activation in motion
 */
-ALTER QUEUE MonologSenderQueue WITH ACTIVATION (STATUS = ON, MAX_QUEUE_READERS = 1)
+ALTER QUEUE MonologueSenderQueue WITH ACTIVATION (STATUS = ON, MAX_QUEUE_READERS = 1)
 ALTER QUEUE HelloWorldQueue WITH ACTIVATION (STATUS = ON, MAX_QUEUE_READERS = 1)
 
 /*
@@ -302,7 +288,7 @@ ALTER QUEUE HelloWorldQueue WITH ACTIVATION (STATUS = ON, MAX_QUEUE_READERS = 1)
 DECLARE @InitDlgHandle UNIQUEIDENTIFIER
 											
 BEGIN DIALOG @InitDlgHandle
-	FROM SERVICE [MonologSenderService]
+	FROM SERVICE [MonologueSenderService]
 	TO SERVICE N'HelloWorldService', 'CURRENT DATABASE'
 	ON CONTRACT [HelloWorldContract]
 	WITH ENCRYPTION = OFF;
@@ -311,6 +297,14 @@ SEND ON CONVERSATION @InitDlgHandle
 	MESSAGE TYPE [HelloWorldMsg]
 	('Hello World 2!')
 
+
+/*
+	We should now have another closed conversation and empty queues
+*/
+SELECT * FROM HelloWorldQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
+
+SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 
 
 /*
@@ -325,8 +319,8 @@ SEND ON CONVERSATION @InitDlgHandle
     simply create the services and start the Queues rolling.
 
 */
-IF EXISTS (SELECT * FROM sys.services WHERE name = N'MonologSenderService')
-     DROP SERVICE [MonologSenderService];
+IF EXISTS (SELECT * FROM sys.services WHERE name = N'MonologueSenderService')
+     DROP SERVICE [MonologueSenderService];
 
 /* 
     The Intermeditate Queue is for processing Trigger messages that may contain many rows
@@ -343,17 +337,17 @@ IF EXISTS (SELECT * FROM sys.service_message_types WHERE name = N'HelloWorldMsg'
 	DROP MESSAGE TYPE [HelloWorldMsg];
 
 
-IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'MonologSenderQueue')
-     DROP QUEUE [MonologSenderQueue];
+IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'MonologueSenderQueue')
+     DROP QUEUE [MonologueSenderQueue];
 
 IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'HelloWorldQueue')
      DROP QUEUE [HelloWorldQueue];
 
-IF OBJECT_ID('SBActivated_MonologSenderQueue','P') IS NOT NULL
-	DROP PROCEDURE SBActivated_MonologSenderQueue
+IF OBJECT_ID('Application.SBActivated_MonologueSenderQueue','P') IS NOT NULL
+	DROP PROCEDURE [Application].[SBActivated_MonologueSenderQueue]
 GO
 
-IF OBJECT_ID('SBActivated_HelloWorldQueue','P') IS NOT NULL
-	DROP PROCEDURE SBActivated_HelloWorldQueue
+IF OBJECT_ID('Application.SBActivated_HelloWorldQueue','P') IS NOT NULL
+	DROP PROCEDURE [Application].[SBActivated_HelloWorldQueue]
 GO
 

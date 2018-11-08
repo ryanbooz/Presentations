@@ -5,6 +5,29 @@ RAISERROR ('Did you mean to run the whole thing?', 20, 1) WITH LOG;
 GO
 
 /*
+	First things first, in a real system, we want to be able to track errors
+	as they happen. This gives us a place to see that a message caused a processing
+	error somewhere, but allows us to get the message off of the queue.
+*/
+
+CREATE TABLE [Application].[SBErrorLog](
+	[errorID] [int] IDENTITY(1,1) NOT NULL,
+	[errorDate] [datetime] NOT NULL,
+	[service_contract_name] [sysname] NOT NULL,
+	[errorCode] [int] NOT NULL,
+	[errorDescription] [varchar](4000) NULL,
+ CONSTRAINT [PKC_SBErrorLog_ErrorID] PRIMARY KEY CLUSTERED 
+  (
+	[errorID] ASC
+  )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [Application].[SBErrorLog] ADD  CONSTRAINT [DF_SBErrorLog_errorDate]  DEFAULT (getdate()) FOR [errorDate]
+GO
+
+
+/*
   Let's create SPROCs to processes these messages instead
 */
 
@@ -13,7 +36,7 @@ GO
 	pass it to another SPROC to process the staging tables for objects effected by modifying
 	this bill in some way.
 */
-CREATE PROCEDURE SBActivated_OrderRollupQueue
+CREATE OR ALTER PROCEDURE [Application].[SBActivated_OrderRollupQueue]
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -39,13 +62,11 @@ BEGIN
 
 			IF (@conversation_handle IS NOT NULL)
 			BEGIN
-
-				DECLARE @OrderID INT = COALESCE((SELECT @message_body.value('(data/row/OrderID)[1]', 'INT')),NULL);
-				PRINT @OrderID;
-
 				IF (@message_type_name = N'OrderIDMsg')
 				BEGIN
-					EXEC DoOrderRollup @OrderID;
+					DECLARE @OrderID INT = COALESCE((SELECT @message_body.value('(//row/OrderID)[1]', 'INT')),NULL);
+					--PRINT @OrderID;
+					EXEC Sales.DoOrderRollup @OrderID;
 				END
 
 				END CONVERSATION @conversation_handle;
@@ -54,20 +75,27 @@ BEGIN
 			COMMIT;
 		END TRY
 		BEGIN CATCH
-			--Test whether the transaction is uncommittable.
-            if (XACT_STATE()) = -1
-            begin
-                  rollback transaction;
-            end;
- 
-            -- Test wether the transaction is active and valid.
-            if (XACT_STATE()) = 1
-            begin
-				DECLARE @error INT, @message NVARCHAR(3000);
-				SELECT @error = ERROR_NUMBER(), @message = ERROR_MESSAGE();
-				END CONVERSATION @conversation_handle WITH error = @error DESCRIPTION = @message;
-			    commit;
-            end
+
+			DECLARE @XACT_STATE INT = XACT_STATE();
+			DECLARE @error INT, @message NVARCHAR(3000);
+			SELECT @error = ERROR_NUMBER(), @message = @message_type_name + ' | ' + CAST(CAST(@message_body as XML) as varchar(2000)) + ' | ' + ERROR_MESSAGE();
+			END CONVERSATION @conversation_handle WITH error = @error DESCRIPTION = @message;
+			
+			IF (@XACT_STATE = -1)
+			BEGIN
+				IF (@@TRANCOUNT > 0)
+				BEGIN
+					ROLLBACK TRANSACTION;
+				END;
+			END;
+
+			IF (@XACT_STATE = 1)
+			BEGIN
+				IF (@@TRANCOUNT > 0)
+				BEGIN 
+					COMMIT TRANSACTION SavePoint1;
+				END;
+			END		
 
 		END CATCH;
 
@@ -79,7 +107,7 @@ GO
    Create the SPROC that will close out the conversation
    when the target queue ends the conversation
 */
-CREATE PROCEDURE SBActivated_MonologSenderQueue
+CREATE OR ALTER PROCEDURE [Application].[SBActivated_MonologueSenderQueue]
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -101,7 +129,7 @@ BEGIN
                     @conversation_handle = conversation_handle,
                     @message_body = message_body,
                     @message_type_name = message_type_name
-                    FROM MonologSenderQueue
+                    FROM MonologueSenderQueue
             ), TIMEOUT 5000;
 
 			IF (@conversation_handle is not null)
@@ -114,10 +142,7 @@ BEGIN
 
 				/*
 				  If one of the other activated SPROCs returned an error, it will be logged into our table
-				  so that we can look at it over time.  Without more work, we can't get to the specific message
-				  type that returned the error (we have multiple actions/types on BillProcess), but at least
-				  we know which service returned the error.  If we go back to different contracts for each message type
-				  then this might be more helpful.
+				  so that we can look at it over time.  
 
 				  The logging table currently has the "event date" in local time as DATETIME.
 				*/
@@ -130,7 +155,7 @@ BEGIN
 					select @Code=(SELECT @errorXML.value('(/ns:Error/ns:Code)[1]','int')),
 						@Description=(SELECT @errorXML.value('(/ns:Error/ns:Description)[1]','nvarchar(3000)'));
 
-					--INSERT INTO SBErrorLog (service_contract_name, errorCode, errorDescription) VALUES (@service_contract_name, @Code, @Description);
+					INSERT INTO [Application].[SBErrorLog] (service_contract_name, errorCode, errorDescription) VALUES (@service_contract_name, @Code, @Description);
 
 					END CONVERSATION @conversation_handle;
 
@@ -157,7 +182,7 @@ BEGIN
 				/*
 				  For future reference.  Simple table to store returned error
 				*/
-				--INSERT INTO SBErrorLog (service_contract_name, errorCode, errorDescription) VALUES (@service_contract_name, -999, @errorText);
+				INSERT INTO [Application].[SBErrorLog] (service_contract_name, errorCode, errorDescription) VALUES (@service_contract_name, -999, @errorText);
 
 				/*
 				   Because this is a monologue, we end the conversation here anyway, having logged the error above. In the future,
@@ -171,31 +196,28 @@ END;
 GO
 
 
-/*
-  Let's setup our first SSB conversation.
-*/
 
 /*
 
- This is the initiator queue. When using SSB as a pure monolog queue, somebody
+ This is the initiator queue. When using SSB as a pure Monologue queue, somebody
  needs to be responsible for closing out the conversations and handling any errors
 */
-CREATE QUEUE [MonologSenderQueue] WITH
+CREATE QUEUE [MonologueSenderQueue] WITH
 		 STATUS = ON,
 		 RETENTION = OFF,
-		 ACTIVATION ( PROCEDURE_NAME = [dbo].[SBActivated_MonologSenderQueue],
+		 ACTIVATION ( PROCEDURE_NAME = [Application].[SBActivated_MonologueSenderQueue],
 					  MAX_QUEUE_READERS = 10,
 					  EXECUTE AS OWNER,
 					  STATUS = OFF
 					  ),
-	     POISON_MESSAGE_HANDLING (STATUS = OFF)  ON [PRIMARY] 
+	     POISON_MESSAGE_HANDLING (STATUS = ON)  ON [PRIMARY] 
 GO
 
 /*
   Minimally we need a service on a queue.  Messages are sent to a queue through
   a service (remember, they're the "traffic cop")
 */
-CREATE SERVICE [MonologSenderService] ON QUEUE [MonologSenderQueue]
+CREATE SERVICE [MonologueSenderService] ON QUEUE [MonologueSenderQueue]
 GO
 
 /*
@@ -204,13 +226,13 @@ GO
 CREATE QUEUE [OrderRollupQueue] WITH 
 		STATUS = ON,
 		RETENTION = OFF,
-		 ACTIVATION ( PROCEDURE_NAME = [dbo].[SBActivated_OrderRollupQueue],
+		 ACTIVATION ( PROCEDURE_NAME = [Application].[SBActivated_OrderRollupQueue],
 					  MAX_QUEUE_READERS = 1,
 					  EXECUTE AS OWNER,
 					  STATUS = OFF
 					  ),
 
-		POISON_MESSAGE_HANDLING (STATUS = OFF)  ON [PRIMARY] 
+		POISON_MESSAGE_HANDLING (STATUS = ON)  ON [PRIMARY] 
 GO
 
 /*
@@ -233,11 +255,15 @@ GO
 CREATE SERVICE [OrderRollupService] ON QUEUE [OrderRollupQueue] ([OrderRollupContract])
 GO
 
+/*
+	Check that things are empty.
+*/
+
 SELECT *, CAST(message_body AS XML) FROM [OrderRollupQueue] WITH (NOLOCK)
-SELECT *, CAST(message_body AS XML) FROM MonologSenderQueue WITH (NOLOCK)
+SELECT *, CAST(message_body AS XML) FROM MonologueSenderQueue WITH (NOLOCK)
 SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 
-EXEC [dbo].[SBActivated_OrderRollupQueue]
+EXEC [Application].[SBActivated_OrderRollupQueue]
 
 /*
 
@@ -251,16 +277,21 @@ EXEC [dbo].[SBActivated_OrderRollupQueue]
   Check the Queues!
 */
 SELECT *, CAST(message_body AS XML) FROM [OrderRollupQueue] WITH (NOLOCK)
-SELECT *, CAST(message_body AS XML) FROM MonologSenderQueue WITH (NOLOCK)
+SELECT *, CAST(message_body AS XML) FROM MonologueSenderQueue WITH (NOLOCK)
 SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
+
+EXEC [Application].[SBActivated_OrderRollupQueue]
 
 /*
   Alter the database to set the activation in motion
 */
-ALTER QUEUE MonologSenderQueue WITH ACTIVATION (STATUS = ON, MAX_QUEUE_READERS = 1)
+
+SELECT COUNT(*) from [Sales].[SalesRollup]
+
+ALTER QUEUE MonologueSenderQueue WITH ACTIVATION (STATUS = ON, MAX_QUEUE_READERS = 1)
 ALTER QUEUE OrderRollupQueue WITH ACTIVATION (STATUS = ON, MAX_QUEUE_READERS = 1)
 
-SELECT COUNT(*) from [dbo].[SalesRollup]
+SELECT COUNT(*) from [Sales].[SalesRollup]
 
 /*
   Clean everything up for next demo
@@ -274,8 +305,8 @@ SELECT COUNT(*) from [dbo].[SalesRollup]
     simply create the services and start the Queues rolling.
 
 */
-IF EXISTS (SELECT * FROM sys.services WHERE name = N'MonologSenderService')
-     DROP SERVICE [MonologSenderService];
+IF EXISTS (SELECT * FROM sys.services WHERE name = N'MonologueSenderService')
+     DROP SERVICE [MonologueSenderService];
 
 /* 
     The Intermeditate Queue is for processing Trigger messages that may contain many rows
@@ -292,16 +323,16 @@ IF EXISTS (SELECT * FROM sys.service_message_types WHERE name = N'OrderIDMsg')
 	DROP MESSAGE TYPE [OrderIDMsg];
 
 
-IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'MonologSenderQueue')
-     DROP QUEUE [MonologSenderQueue];
+IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'MonologueSenderQueue')
+     DROP QUEUE [MonologueSenderQueue];
 
 IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'OrderRollupQueue')
      DROP QUEUE [OrderRollupQueue];
 
-IF OBJECT_ID('SBActivated_MonologSenderQueue','P') IS NOT NULL
-	DROP PROCEDURE SBActivated_MonologSenderQueue
+IF OBJECT_ID('Application.SBActivated_MonologueSenderQueue','P') IS NOT NULL
+	DROP PROCEDURE [Application].[SBActivated_MonologueSenderQueue]
 GO
 
-IF OBJECT_ID('SBActivated_OrderRollupQueue','P') IS NOT NULL
-	DROP PROCEDURE SBActivated_OrderRollupQueue
+IF OBJECT_ID('Application.SBActivated_OrderRollupQueue','P') IS NOT NULL
+	DROP PROCEDURE [Application].[SBActivated_OrderRollupQueue]
 GO

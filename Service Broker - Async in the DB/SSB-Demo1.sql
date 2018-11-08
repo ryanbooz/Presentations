@@ -5,22 +5,30 @@ RAISERROR ('Did you mean to run the whole thing?', 20, 1) WITH LOG;
 GO
 
 /*
+  Ensure that Service Broker is disabled at the beginning so that the
+  demonstration of the transmission queue is ready
+*/
+ALTER DATABASE [WideWorldImporters] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+ALTER DATABASE [WideWorldImporters] SET DISABLE_BROKER
+ALTER DATABASE [WideWorldImporters] SET MULTI_USER
+
+
+/*
   Let's setup our first SSB conversation.
 */
 
 /*
-
- This is the initiator queue. When using SSB as a pure monolog queue, somebody
+ This is the initiator queue. When using SSB as a pure Monologue queue, somebody
  needs to be responsible for closing out the conversations and handling any errors
 */
-CREATE QUEUE [MonologSenderQueue]
+CREATE QUEUE [MonologueSenderQueue]
 GO
 
 /*
   Minimally we need a service on a queue.  Messages are sent to a queue through
   a service (remember, they're the "traffic cop")
 */
-CREATE SERVICE [MonologSenderService] ON QUEUE [MonologSenderQueue]
+CREATE SERVICE [MonologueSenderService] ON QUEUE [MonologueSenderQueue]
 GO
 
 /*
@@ -40,7 +48,7 @@ GO
   If you have a message type, the contract makes sure everyone is sending the
   correct type of message to the queue
 */
-CREATE CONTRACT [HelloWorldContract] ([HelloWorldMsg] SENT BY INITIATOR);
+CREATE CONTRACT [HelloWorldContract] ([HelloWorldMsg] SENT BY ANY);
 GO
 
 /*
@@ -56,7 +64,7 @@ GO
 DECLARE @InitDlgHandle UNIQUEIDENTIFIER
 											
 BEGIN DIALOG @InitDlgHandle
-	FROM SERVICE [MonologSenderService]
+	FROM SERVICE [MonologueSenderService]
 	TO SERVICE N'HelloWorldService', 'CURRENT DATABASE'
 	ON CONTRACT [HelloWorldContract]
 	WITH ENCRYPTION = OFF;
@@ -71,7 +79,7 @@ SEND ON CONVERSATION @InitDlgHandle
   HUH?
 */
 SELECT * FROM HelloWorldQueue WITH (NOLOCK)
-SELECT * FROM MonologSenderQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
 
 /*
   Conversation_endpoints shows
@@ -80,7 +88,7 @@ SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 SELECT * FROM sys.[transmission_queue]
 
 /*
-  If the aboce message didn't send and we see an error in the transmission queue, 
+  If the above message didn't send and we see an error in the transmission queue, 
   then that means that Service Broker hasn't been enabled
 */
 ALTER DATABASE [WideWorldImporters] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
@@ -92,7 +100,7 @@ ALTER DATABASE [WideWorldImporters] SET MULTI_USER
 
 */
 SELECT * FROM HelloWorldQueue WITH (NOLOCK)
-SELECT * FROM MonologSenderQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
 
 SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 SELECT * FROM sys.[transmission_queue]
@@ -140,7 +148,7 @@ COMMIT;
   Check progress.  Note that the STATE has changed on the conversation
 */
 SELECT * FROM HelloWorldQueue WITH (NOLOCK)
-SELECT * FROM MonologSenderQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
 SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
 
 
@@ -161,7 +169,7 @@ BEGIN TRANSACTION;
             @conversation_handle = conversation_handle,
             @message_body = message_body,
             @message_type_name = message_type_name
-            FROM MonologSenderQueue
+            FROM MonologueSenderQueue
     ), TIMEOUT 5000;
 
 	IF (@conversation_handle IS NOT NULL)
@@ -177,8 +185,11 @@ COMMIT;
   Check progress.  Note that the STATE has changed on the conversation again
 */
 SELECT * FROM HelloWorldQueue WITH (NOLOCK)
-SELECT * FROM MonologSenderQueue WITH (NOLOCK)
+SELECT * FROM MonologueSenderQueue WITH (NOLOCK)
 SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
+
+
+
 
 
 
@@ -194,8 +205,8 @@ SELECT * FROM sys.[conversation_endpoints] WITH (NOLOCK)
     simply create the services and start the Queues rolling.
 
 */
-IF EXISTS (SELECT * FROM sys.services WHERE name = N'MonologSenderService')
-     DROP SERVICE [MonologSenderService];
+IF EXISTS (SELECT * FROM sys.services WHERE name = N'MonologueSenderService')
+     DROP SERVICE [MonologueSenderService];
 
 /* 
     The Intermeditate Queue is for processing Trigger messages that may contain many rows
@@ -212,8 +223,10 @@ IF EXISTS (SELECT * FROM sys.service_message_types WHERE name = N'HelloWorldMsg'
 	DROP MESSAGE TYPE [HelloWorldMsg];
 
 
-IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'MonologSenderQueue')
-     DROP QUEUE [MonologSenderQueue];
+IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'MonologueSenderQueue')
+     DROP QUEUE [MonologueSenderQueue];
 
 IF EXISTS (SELECT * FROM sys.service_queues WHERE name = N'HelloWorldQueue')
      DROP QUEUE [HelloWorldQueue];
+
+
