@@ -45,7 +45,7 @@ I've included this in the **order-insert** folder for you in case you cannot fin
    
    **tI_Order_Rollup.sql** - This trigger will fire every time a new order is created for a customer.  It is in this trigger that we save the OrderID in an XML document which is placed on the queue.  Another SPROC takes that message off of the queue and passes the OrderID to a procedure that will do the rollup of this order.
 
-   **DoOrderRollup.sql** - This stored procedure simply receives and OrderID from the activated SPROC and does the rollup.  It uses a MERGE statement to either insert a new row if it doesn't exist or udpate one if it is there (if a user modifies an order or orders more of the same item for that month).
+   **DoOrderRollup.sql** - This stored procedure simply receives and OrderID from the activated SPROC and does the rollup.  It uses a MERGE statement to either insert a new row if it doesn't exist or update one if it is there (if a user modifies an order or orders more of the same item for that month).
 
 ## Gotcha & Tips Scripts ##
 
