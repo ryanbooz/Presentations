@@ -9,7 +9,7 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 ### [__The Agile DBA - SQL Server DevOps with SSDT__](https://github.com/ryanbooz/Presentations/tree/master/The%20Agile%20DBA%20-%20SQL%20Server%20DevOps%20with%20SSDT) ###
  * GroupBy.org (June 2018)
  * Pittsburgh SQL Server User Group (August 2018)
- * CodeMash 2019 (January 2019)
+ * CodeMash 2019 (Jan 2019)
 
 ### [__Service Broker - Async in the DB__](https://github.com/ryanbooz/presentations/tree/master/Service%20Broker%20-%20Async%20in%20the%20DB) ###
  * SQL Saturday Philly (May 2017)
@@ -18,3 +18,6 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 ### [__The Accidental DBA__](https://github.com/ryanbooz/presentations/tree/master/The%20Accidental%20DBA) ###
  * SQL Saturday Philly (May 2017)
  * SQL Saturday Pittsburgh (Sep 2017)
+
+### [__Power BI Custom Data Connectors__](https://github.com/ryanbooz/Presentations/tree/master/Power%20BI%20Custom%20Data%20Connectors) ###
+ * CodeMash 2019 (Jan 2019)
