@@ -25,3 +25,6 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 ### [__PostgreSQL for the SQL Server DBA__](https://github.com/ryanbooz/Presentations/tree/master/Postgres%20for%20the%20SQL%20Server%20DBA) ###
  * SQL Data Saturday LA (June 2021)
  * DBA Fundamentals Virtual Meetup (August 2021)
+
+### [__Bukl inserts with PostgreSQL__](https://github.com/ryanbooz/Presentations/tree/master/Bulk%20Inserts%20with%20Postgres) ###
+ * Postgres Build 2021 (December 2021)
