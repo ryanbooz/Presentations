@@ -26,5 +26,8 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
  * SQL Data Saturday LA (June 2021)
  * DBA Fundamentals Virtual Meetup (August 2021)
 
-### [__Bukl inserts with PostgreSQL__](https://github.com/ryanbooz/Presentations/tree/master/Bulk%20Inserts%20with%20PostgreSQL) ###
+### [__Bulk inserts with PostgreSQL__](https://github.com/ryanbooz/Presentations/tree/master/Bulk%20Inserts%20with%20PostgreSQL) ###
  * Postgres Build 2021 (December 2021)
+
+### [__How to generate (lots) of sample data with PostgreSQL generate_series()__](https://github.com/ryanbooz/Presentations/tree/master/How%20to%20generate%20(lots)%20of%20sample%20data%20with%20PostgreSQL%20generate_series())
+ * FOSDEM 2022 (February 2022)
