@@ -33,5 +33,5 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
  * FOSDEM 2022 (February 2022)
 
 
- ### [__Point-in-time query tuning and observability with pg_stat_statements__](https://github.com/ryanbooz/Presentations/tree/master/)
+ ### [__Point-in-time query tuning and observability with pg_stat_statements__](https://github.com/ryanbooz/Presentations/tree/master/Postgres%20Database%20Monitoring%20with%20pg_stat_statements)
  * CitusCon 2022 (April 2022)
