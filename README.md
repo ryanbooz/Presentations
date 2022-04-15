@@ -31,3 +31,7 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 
 ### [__How to generate (lots) of sample data with PostgreSQL generate_series()__](https://github.com/ryanbooz/Presentations/tree/master/How%20to%20generate%20(lots)%20of%20sample%20data%20with%20PostgreSQL%20generate_series())
  * FOSDEM 2022 (February 2022)
+
+
+ ### [__Point-in-time query tuning and observability with pg_stat_statements__](https://github.com/ryanbooz/Presentations/tree/master/)
+ * CitusCon 2022 (April 2022)
