@@ -35,3 +35,7 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 
  ### [__Point-in-time query tuning and observability with pg_stat_statements__](https://github.com/ryanbooz/Presentations/tree/master/Postgres%20Database%20Monitoring%20with%20pg_stat_statements)
  * CitusCon 2022 (April 2022)
+
+
+  ### [__PostgreSQL Exploits, Oh My! Security best practices with PostgreSQL extensions__](https://github.com/ryanbooz/Presentations/tree/master/PostgreSQL%20Exploits%20-%20Oh%20My%21)
+ * Postgres Vision 2022 (June 2022)
