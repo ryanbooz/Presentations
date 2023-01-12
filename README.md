@@ -39,3 +39,6 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 
   ### [__PostgreSQL Exploits, Oh My! Security best practices with PostgreSQL extensions__](https://github.com/ryanbooz/Presentations/tree/master/PostgreSQL%20Exploits%20-%20Oh%20My%21)
  * Postgres Vision 2022 (June 2022)
+
+ ### [__Intro to PostgreSQL: What to know when you're called in to help__](https://github.com/ryanbooz/Presentations/tree/master/Intro%20to%20PostgreSQL) ###
+ * CodeMash 2023 (January 2023)
