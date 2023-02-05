@@ -90,6 +90,7 @@ $$
 TRUNCATE bulk_test;
 SELECT count(*) FROM bulk_test;
 
+
 DO
 $$
 DECLARE
@@ -162,7 +163,6 @@ $$
  */
 COPY bulk_data TO '/tmp/bulk_test.csv' CSV HEADER;
 
-
 /*
  * Now using COPY. Remember, it's very fast
  * but also a failure stops it from completing.
@@ -185,6 +185,8 @@ BEGIN
 END;
 $$
 
+SELECT count(*) FROM bulk_test;
+
 /*
  * Set the test table to UNLOGGED and then
  * try the COPY statement again.
@@ -193,5 +195,87 @@ $$
  * under most normal circumstances.
  */
 ALTER TABLE bulk_test SET UNLOGGED;
+
+
+
+
+
+
+
+
+/* 
+ * Verify that we don't have indexes
+ */
+SELECT * FROM pg_catalog.pg_indexes
+WHERE schemaname = 'public';
+
+-- Create some indexes
+CREATE INDEX idx_device_id_time ON bulk_test(device_id, time);
+CREATE INDEX idx_val1 ON bulk_test(val1);
+CREATE INDEX idx_val9 ON bulk_test(val9);
+
+-- Drop the b-tree index
+DROP INDEX idx_val9;
+
+-- Add the trigram exetnsion
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Create a trigram index on the text column instead.
+-- Remember that val9 is 50 characters maximum
+CREATE INDEX idx_trgm_val9 ON bulk_test USING gin (val9 gin_trgm_ops);
+
+
+-- Drop the indexes
+DROP INDEX idx_device_id_time;
+DROP INDEX idx_val1;
+DROP INDEX idx_trgm_val9;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * Partition example
+ */
+CREATE TABLE test_insert_p (LIKE test_insert INCLUDING ALL)
+PARTITION BY RANGE (time);
+
+TRUNCATE test_insert_p;
+
+DO
+$$
+DECLARE
+	range_start timestamptz = '2020-12-31'::timestamptz;
+	range_end timestamptz = range_start + INTERVAL '20 minutes';
+	sqlstr TEXT = '';
+	pcount int = 1;
+BEGIN
+
+	WHILE pcount < 200 loop
+		sqlstr = FORMAT('CREATE TABLE tip_%1$s PARTITION OF test_insert_p
+		    FOR VALUES FROM (%2$L) TO (%3$L);',pcount,range_start,range_end);
+		   
+		RAISE NOTICE '%' , sqlstr;
+	
+		execute(sqlstr);
+	
+		pcount=pcount+1;
+		range_start = range_end;
+		range_end = range_end + INTERVAL '20 minutes';
+	END LOOP;
+END;
+$$
 
 

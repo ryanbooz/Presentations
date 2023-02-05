@@ -5,11 +5,8 @@ import psycopg2
 from psycopg2.extras import execute_values
 from psycopg2.extras import execute_batch
 from pandas import *
-import numpy as np
-import msgpack
-import msgpack_numpy as m
 
-conn = psycopg2.connect(database="nft_copy", 
+conn = psycopg2.connect(dbname="bulk_example", 
                         host="localhost", 
                         user="postgres", 
                         password="password", 
@@ -46,19 +43,19 @@ def single_insert():
 
         conn.commit()
 
-def multi_valued_insert():
+def multi_valued_insert(tname="test_insert"):
     global function_name
     function_name = 'multi_valued_insert '
     with open(filename, 'r') as f:
         global batch_count
         reader = csv.reader(f)
-        sql = "INSERT INTO test_insert VALUES "
+        sql = "INSERT INTO {} VALUES ".format(tname)
         next(reader) # Skip the header row.
         for row in reader:
             batch_count += 1
             sql += "('{}', {}, {}),".format(*row)
 
-            if batch_count == 500:
+            if batch_count == 10000:
                 cur.execute(sql[:-1])
                 conn.commit()
                 batch_count = 0
@@ -76,7 +73,7 @@ def exec_values():
         next(reader) # Skip the header row.
         list_of_rows = list(reader)
 
-        execute_values(cur, "INSERT INTO test_insert VALUES %s", list_of_rows,page_size=1000)
+        execute_values(cur, "INSERT INTO test_insert VALUES %s", list_of_rows,page_size=10000)
 
         conn.commit()
 
@@ -101,11 +98,11 @@ def insert_arrays():
         cur.execute("INSERT INTO test_insert SELECT * FROM unnest(%s::timestamptz[],%s::int[],%s::double precision[]) a(t,v,s) ON CONFLICT DO nothing;",(date[i:batch_end],tempc[i:batch_end],cpu[i:batch_end]))
         i=batch_end
         batch_end+=batch_size
-        #conn.commit()
+        conn.commit()
     
     if total_length > i:
         cur.execute("INSERT INTO test_insert SELECT * FROM unnest(%s::timestamptz[],%s::int[],%s::double precision[]) a(t,v,s) ON CONFLICT DO nothing;",(date[i:],tempc[i:],cpu[i:]))
-        #conn.commit()
+        conn.commit()
     
     conn.commit()
 
@@ -120,9 +117,9 @@ def copy_from_csv():
 
 
 #single_insert()
-#multi_valued_insert()
+multi_valued_insert()
 #exec_values()
 #insert_arrays()
-copy_from_csv()
+#copy_from_csv()
 
 print('{} elapsed time in seconds: {}'.format(function_name, time.time() - t))
