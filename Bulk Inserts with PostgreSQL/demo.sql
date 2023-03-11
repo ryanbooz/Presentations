@@ -174,14 +174,23 @@ $$
 DECLARE
 	exec_start timestamptz;
 BEGIN
-	TRUNCATE bulk_test;
 	exec_start := clock_timestamp();
-
-	COPY bulk_test FROM '/tmp/bulk_test.csv' CSV HEADER;
+	BEGIN 
+		TRUNCATE bulk_test;
+--		DROP INDEX idx_device_id_time;
+--		DROP INDEX idx_val1;
+--		DROP INDEX idx_trgm_val9;
 	
-	RAISE NOTICE 'Execution time in ms = %' , 1000 * (extract(epoch FROM clock_timestamp() - exec_start));
+		COPY bulk_test FROM '/tmp/bulk_test.csv' CSV HEADER;
+		
+		RAISE NOTICE 'Execution time in ms = %' , 1000 * (extract(epoch FROM clock_timestamp() - exec_start));
 
+		--perform pg_sleep(10);
 	
+		--CREATE INDEX idx_trgm_val9 ON bulk_test USING gin (val9 gin_trgm_ops);
+
+		COMMIT;
+	END;
 END;
 $$
 
@@ -194,7 +203,7 @@ SELECT count(*) FROM bulk_test;
  * ***REMEMBER***: Set the table back to LOGGED
  * under most normal circumstances.
  */
-ALTER TABLE bulk_test SET UNLOGGED;
+ALTER TABLE bulk_test SET LOGGED;
 
 
 

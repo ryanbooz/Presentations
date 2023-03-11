@@ -34,6 +34,12 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
  * CodeMash 2023 (January 2023)
  * Chicago PUG (January 2023)
 
+ ### [__We All Deserve Arrays: The Hidden Superpower of PostgreSQL__](https://github.com/ryanbooz/Presentations/tree/master/We%20All%20Deserve%20Arrays%20-%20The%20Hidden%20Superpower%20of%20PostgreSQL) ###
+ * PGDay LA @ SCaLE20x (March 2023)
+
+ ### [__For Your Eyes Only: Roles, Privileges, and Security in PostgreSQL__](https://github.com/ryanbooz/Presentations/tree/master/For%20Your%20Eyes%20Only%20-%20Roles%20Privileges%20and%20Security%20in%20PostgreSQL) ###
+ * PGDay LA @ SCaLE20x (March 2023)
+
 ## SQL Server/Power BI related talks (often older)
 
  ### [__The Agile DBA - SQL Server DevOps with SSDT__](https://github.com/ryanbooz/Presentations/tree/master/The%20Agile%20DBA%20-%20SQL%20Server%20DevOps%20with%20SSDT) ###
