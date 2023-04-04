@@ -10,6 +10,7 @@ CREATE ROLE developer WITH nologin;
 /*
  * Now grant necessary permissions
  */
+SET ROLE NONE;
 GRANT SELECT, INSERT, UPDATE, DELETE 
 	ON ALL TABLES IN SCHEMA public TO developer;
 
@@ -28,7 +29,7 @@ GRANT developer TO dev1;
 GRANT developer TO dev2;
 
 /*
- * After loging in as Dev1, create a new table
+ * After loging in as dev1, create a new table
  */
 SET ROLE dev1;
 CREATE TABLE new_table(col1 text);
@@ -36,7 +37,8 @@ CREATE TABLE new_table(col1 text);
 /*
  * This could also be done with '\d' in psql
  */
-SELECT * FROM pg_catalog.pg_tables 
+SELECT schemaname, tablename, tableowner 
+FROM pg_catalog.pg_tables 
 WHERE tablename = 'new_table';
 
 /*
@@ -63,7 +65,8 @@ SET ROLE developer;
  */
 CREATE TABLE new_table(col1 text);
 
-SELECT * FROM pg_catalog.pg_tables 
+SELECT schemaname, tablename, tableowner 
+FROM pg_catalog.pg_tables 
 WHERE tablename = 'new_table';
 
 /*
@@ -82,13 +85,13 @@ SELECT * FROM new_table;
 SET ROLE none; --back to superuser
 
 -- create a user that can login
-CREATE ROLE rptusr WITH login PASSWORD 'scale20x';
+CREATE ROLE rptusr WITH login PASSWORD 'cituscon2023';
 
 -- test select
 SET ROLE rptusr;
 SELECT * FROM new_table;
 
--- as superuser grant permissions
+-- as owner or superuser grant permissions
 SET ROLE NONE;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO rptusr;
 
