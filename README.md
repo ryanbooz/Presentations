@@ -39,6 +39,11 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 
  ### [__For Your Eyes Only: Roles, Privileges, and Security in PostgreSQL__](https://github.com/ryanbooz/Presentations/tree/master/For%20Your%20Eyes%20Only%20-%20Roles%20Privileges%20and%20Security%20in%20PostgreSQL) ###
  * PGDay LA @ SCaLE20x (March 2023)
+ * CitusCon 2023 (April 2023)
+
+ ### [__Ten Things I Learned Solving Puzzles with PostgreSQL__](https://github.com/ryanbooz/Presentations/tree/master/Ten%20Things%20I%20Learned%20Solving%20Puzzles%20with%20PostgreSQL) ###
+ * Postgres Conference Silicon Valley (April 2023)
+ 
 
 ## SQL Server/Power BI related talks (often older)
 
