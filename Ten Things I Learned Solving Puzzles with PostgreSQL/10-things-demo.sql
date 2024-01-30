@@ -94,15 +94,18 @@ WITH recursive files AS (
 	SELECT name, parent_folder, SIZE FROM files_on_disk
 	WHERE parent_folder IS NULL
 	UNION
-	-- this is the recursive query. because it the table on disk
+	-- this is the recursive query. because it is the table on disk
 	-- back to the output of the last iteration, we can iterate
-	-- a set of data to fine relationships and reach backward
+	-- a set of data to find relationships and reach backward
 	SELECT fid.name, fid.parent_folder AS parent_path, 
 	    fid.SIZE FROM files_on_disk fid
 		INNER JOIN files f ON fid.parent_folder = f.name
 )
 SELECT * FROM files;
 
+SELECT fid.name, fid.parent_folder AS parent_path, 
+	    fid.SIZE FROM files_on_disk fid
+	   WHERE parent_folder = 'Folder_B';
 /*
  * The same example as above, but now we're actually using data from the
  * previous iteration to build a "file path".
@@ -244,7 +247,7 @@ SELECT * FROM
 -- being returned is a set which can be referenced directly,
 -- rather than with a subselect
 select id,
---		t
+	--	t,
 		t[1]::int boxes,
 		t[2]::int src,
 		t[3]::int dest
