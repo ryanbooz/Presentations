@@ -2,9 +2,8 @@ import os
 import time
 import csv
 import psycopg2
-from psycopg2.extras import execute_values
-from psycopg2.extras import execute_batch
-from pandas import *
+# from psycopg2.extras import execute_values
+# from psycopg2.extras import execute_batch
 
 conn = psycopg2.connect(dbname="postgres", 
                         host="localhost", 
@@ -116,8 +115,8 @@ def copy_from_csv():
 
 
 #single_insert()
-#multi_valued_insert()
+multi_valued_insert()
 #insert_arrays()
-copy_from_csv()
+#copy_from_csv()
 
 print('{} elapsed time in seconds: {}'.format(function_name, time.time() - t))
