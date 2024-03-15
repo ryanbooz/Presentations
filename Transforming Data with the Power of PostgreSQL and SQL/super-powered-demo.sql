@@ -20,10 +20,10 @@ create table dec07 (
  */
 INSERT INTO dec07 (lines) VALUES 
 	('32T3K 765'),
-('T55J5 684'),
-('KK677 28'),
-('KTJJT 220'),
-('QQQJA 483');
+	('T55J5 684'),
+	('KK677 28'),
+	('KTJJT 220'),
+	('QQQJA 483');
 
 SELECT * FROM dec07;
 
@@ -33,11 +33,32 @@ SELECT * FROM dec07;
  * 'string_to_table' or 'rexexp_split_to_table' are good 
  * options
  */
+-- demo dollar quoting
+SELECT $$32T3K 765
+T55J5 684
+KK677 28
+KTJJT 220
+QQQJA 483$$;
+
+-- Dollar quoteing is really helpful with functions
+-- like format()
+SELECT format($$This is a demo for %s!!$$, 'Scale 21x');
+
+
 SELECT regexp_split_to_table($$32T3K 765
 T55J5 684
 KK677 28
 KTJJT 220
 QQQJA 483$$,'\n') lines;
+
+WITH dec07_dt AS (
+	SELECT * FROM regexp_split_to_table($$32T3K 765
+T55J5 684
+KK677 28
+KTJJT 220
+QQQJA 483$$,'\n') lines
+)
+SELECT * FROM dec07_dt;
 
 
 SELECT ROW_NUMBER() OVER() AS id, *  FROM (
@@ -48,9 +69,10 @@ T55J5 684
 KK677 28
 KTJJT 220
 QQQJA 483$$,'\n') lines
-) dec07;
+) dec07_dt;
 
-WITH dec07 AS (
+-- CTE with ROW_NUMBER()
+WITH dec07_dt AS (
 	SELECT ROW_NUMBER() OVER() AS id, * FROM (
 	SELECT regexp_split_to_table($$32T3K 765
 T55J5 684
@@ -58,21 +80,20 @@ KK677 28
 KTJJT 220
 QQQJA 483$$,'\n') lines) a
 )
-SELECT * FROM dec07;
+SELECT * FROM dec07_dt;
 
-
-WITH dec07 AS (
+-- WITH ORDINALITY
+WITH dec07_dt AS (
 	SELECT * FROM regexp_split_to_table($$32T3K 765
 T55J5 684
 KK677 28
 KTJJT 220
 QQQJA 483$$,'\n') WITH ORDINALITY lines(lines,id)
 )
-SELECT id, lines FROM dec07;
+SELECT id, lines FROM dec07_dt;
 
 
-
-WITH dec07 AS (
+WITH dec07_dt AS (
 	SELECT * FROM regexp_split_to_table($$32T3K 765
 T55J5 684
 KK677 28
@@ -82,7 +103,7 @@ QQQJA 483$$,'\n') WITH ORDINALITY lines(lines,id)
 SELECT id AS hand,
 	split_part(lines,' ',1) AS cards, 
 	split_part(lines,' ',2) AS bid 
-FROM dec07;
+FROM dec07_dt;
 
 /*
  * now with real data
@@ -92,6 +113,26 @@ SELECT id AS hand,
 	split_part(lines,' ',2) AS bid 
 FROM dec07;
 
+-- Split each hand into individual cards
+-- with their position in the hand left to right
+SELECT id AS hand, 
+	  t.* AS card, 
+      (split_part(lines,' ',2)) AS bid
+FROM dec07, --> CROSS JOIN LATERAL
+     string_to_table(split_part(lines,' ',1),null)
+     	WITH ORDINALITY t(card,position); 
+
+-- Same thing, but cleaned up with 
+SELECT id AS hand, 
+	t.card, 
+	t.position, 
+	bid 
+FROM dec07, 
+     string_to_table(split_part(lines,' ',1),null) 
+		WITH ORDINALITY t(card,position),
+     split_part(lines,' ',2) bid;
+
+
 
 /*
  * Crazy fun with arrays and WORDLE!
@@ -99,35 +140,49 @@ FROM dec07;
  * Same principles as above, and by using cross joins, we can
  * rerences the output of each set to do additional work on it.
  */
-select * from regexp_matches($$Not as easy as you think
-							#Wordle 511 3/6*
-							🟨⬜🟨⬜⬜
-							⬜🟨🟨🟨🟨
-							🟩🟩🟩🟩🟩
-						$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') WITH ORDINALITY AS g(guess, guess_num);
+SELECT $$Not as easy as you think
+		#Wordle 511 3/6*
+		🟨⬜🟨⬜⬜
+		⬜🟨🟨🟨🟨
+		🟩🟩🟩🟩🟩
+	$$;
+
+
+select * from 
+	regexp_matches($$Not as easy as you think
+		#Wordle 511 3/6*
+		🟨⬜🟨⬜⬜
+		⬜🟨🟨🟨🟨
+		🟩🟩🟩🟩🟩
+	$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') 
+		WITH ORDINALITY AS g(guess, guess_num)
 
 
 -- The output of this CTE would be one row for each word guess
 -- of a puzzle, three in the case of the example below.
 WITH wordle_score AS (
-	select * from regexp_matches($$Not as easy as you think
-							#Wordle 511 3/6*
-							🟨⬜🟨⬜⬜
-							⬜🟨🟨🟨🟨
-							🟩🟩🟩🟩🟩
-						$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') WITH ORDINALITY AS g(guess, guess_num)
+		select * from 
+		regexp_matches($$Not as easy as you think
+			#Wordle 511 3/6*
+			🟨⬜🟨⬜⬜
+			⬜🟨🟨🟨🟨
+			🟩🟩🟩🟩🟩
+		$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') 
+			WITH ORDINALITY AS g(guess, guess_num)
 )					
 SELECT * FROM wordle_score;
 
 
 -- Break it apart even further to get each separate letter
 WITH wordle_score AS (
-	select * from regexp_matches($$Not as easy as you think
-							#Wordle 511 3/6*
-							🟨⬜🟨⬜⬜
-							⬜🟨🟨🟨🟨
-							🟩🟩🟩🟩🟩
-						$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') WITH ORDINALITY AS g(guess, guess_num)
+		select * from 
+		regexp_matches($$Not as easy as you think
+			#Wordle 511 3/6*
+			🟨⬜🟨⬜⬜
+			⬜🟨🟨🟨🟨
+			🟩🟩🟩🟩🟩
+		$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') 
+			WITH ORDINALITY AS g(guess, guess_num)
 )					
 SELECT *
 FROM wordle_score ws,-- CROSS JOIN LATERAL
@@ -138,12 +193,14 @@ FROM wordle_score ws,-- CROSS JOIN LATERAL
 -- Now we can aggregate those individual letters
 -- to see how many letters were right/wrong for each guess
 WITH wordle_score AS (
-	select * from regexp_matches($$Not as easy as you think
-							#Wordle 511 3/6*
-							🟨⬜🟨⬜⬜
-							⬜🟨🟨🟨🟨
-							🟩🟩🟩🟩🟩
-						$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') WITH ORDINALITY AS g(guess, guess_num)
+	select * from 
+		regexp_matches($$Not as easy as you think
+			#Wordle 511 3/6*
+			🟨⬜🟨⬜⬜
+			⬜🟨🟨🟨🟨
+			🟩🟩🟩🟩🟩
+		$$,'([🟩|🟧|🟨|🟦|⬛|⬜|]{5})','g') 
+			WITH ORDINALITY AS g(guess, guess_num)
 )					
 SELECT 
 	guess_num,
@@ -151,7 +208,8 @@ SELECT
 	count(*) FILTER (WHERE c1[1]='🟨') AS c_partial,
 	count(*) FILTER (WHERE c1[1] IN ('⬛','⬜')) AS c_incorrect
 FROM wordle_score ws,
-	regexp_matches(ws.guess[1],'([⬛|🟩|🟨|⬜]{1})','g') WITH ORDINALITY AS r(c1, letter)
+	regexp_matches(ws.guess[1],'([⬛|🟩|🟨|⬜]{1})','g') 
+		WITH ORDINALITY AS r(c1, letter)
 GROUP BY 1;
 
 
@@ -237,11 +295,21 @@ WITH recursive files AS (
 )
 SELECT * FROM files;
 
+/*
+ * Break it down a bit...
+ */
+-- Results of first join
 SELECT fid.name, fid.parent_folder AS parent_path, 
 	    fid.SIZE FROM files_on_disk fid
-	   WHERE parent_folder = 'Folder_B';
+	   WHERE parent_folder = 'Folder_A';
 
-	  /*
+-- Results of second join
+SELECT fid.name, fid.parent_folder AS parent_path, 
+	    fid.SIZE FROM files_on_disk fid
+	   WHERE parent_folder = 
+	  		ANY('{Folder_A_1,Folder_B,Folder_A_2,File_A1.txt,File_A2.txt}');
+
+/*
  * The same example as above, but now we're actually using data from the
  * previous iteration to build a "file path".
  */
@@ -249,7 +317,7 @@ WITH recursive files AS (
 	SELECT name, COALESCE(parent_folder,'') parent_path, SIZE FROM files_on_disk
 	WHERE parent_folder IS NULL
 	UNION
-	SELECT fid.name, f.parent_path || '\' || fid.parent_folder AS parent_path, 
+	SELECT fid.name, f.parent_path || '/' || fid.parent_folder AS parent_path, 
 	    fid.SIZE FROM files_on_disk fid
 		INNER JOIN files f ON fid.parent_folder = f.name
 )
@@ -293,7 +361,7 @@ $ ls
 7214296 k$$,'\r\n')
 )
 INSERT INTO dec07(file_system)
---SELECT * FROM dec07_cte;
+SELECT * FROM dec07_cte;
 
 SELECT * FROM dec07;
 
@@ -327,12 +395,12 @@ walk_tree as (
 		null::int fsize	
 	union all
 	-- Check the first element of the directory array.
--- 
--- If it is not ‘..’ and not NULL, append the directory to the array
--- of directories.
--- 
--- If it is ‘..’, remove the last element from the array because we 
--- moved up a directory.
+	-- 
+	-- If it is not ‘..’ and not NULL, append the directory to the array
+	-- of directories.
+	-- 
+	-- If it is ‘..’, remove the last element from the array because we 
+	-- moved up a directory.
 	select c.id+1, 
 		case when c.dir[1] != '..' and c.dir is not null 
 			then wt.dir || c.dir[1]
@@ -364,12 +432,12 @@ walk_tree as (
 		null::int fsize	
 	union all
 	-- Check the first element of the directory array.
--- 
--- If it is not ‘..’ and not NULL, append the directory to the array
--- of directories.
--- 
--- If it is ‘..’, remove the last element from the array because we 
--- moved up a directory.
+	-- 
+	-- If it is not ‘..’ and not NULL, append the directory to the array
+	-- of directories.
+	-- 
+	-- If it is ‘..’, remove the last element from the array because we 
+	-- moved up a directory.
 	select c.id+1, 
 		case when c.dir[1] != '..' and c.dir is not null 
 			then wt.dir || c.dir[1]
