@@ -10,7 +10,7 @@ CREATE ROLE developer WITH nologin;
 /*
  * Now grant necessary permissions
  */
-SET ROLE NONE;
+SET ROLE NONE; -- the original SESSION user
 GRANT SELECT, INSERT, UPDATE, DELETE 
 	ON ALL TABLES IN SCHEMA public TO developer;
 
@@ -85,7 +85,7 @@ SELECT * FROM new_table;
 SET ROLE none; --back to superuser
 
 -- create a user that can login
-CREATE ROLE rptusr WITH login PASSWORD 'cituscon2023';
+CREATE ROLE rptusr WITH login PASSWORD 'pgdaychicago';
 
 -- test select
 SET ROLE rptusr;
@@ -132,8 +132,8 @@ SELECT * FROM rpt_table;
  * Reset!
  */
 SET ROLE NONE;
-DROP TABLE rpt_table;
-DROP TABLE new_table;
+DROP TABLE IF exists rpt_table;
+DROP TABLE IF EXISTS new_table;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM rptusr;
 
 SET ROLE developer;
@@ -142,3 +142,7 @@ ALTER DEFAULT PRIVILEGES REVOKE
 
 SET ROLE NONE;
 DROP ROLE rptusr;
+DROP ROLE dev1;
+DROP ROLE dev2;
+REVOKE ALL PRIVILEGES ON SCHEMA public FROM developer;
+DROP ROLE developer;

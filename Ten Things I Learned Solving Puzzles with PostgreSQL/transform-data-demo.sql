@@ -29,8 +29,17 @@ INSERT INTO files_on_disk VALUES
 	('File_B1.txt','Folder_B',4567);
 
 
+SELECT regexp_split_to_table($$32T3K 765
+T55J5 684
+KK677 28
+KTJJT 220
+QQQJA 483$$,'\n') lines;
 
-
+SELECT $$32T3K 765
+T55J5 684
+KK677 28
+KTJJT 220
+QQQJA 483$$;
 
 /*
  * CTE Example
