@@ -7,6 +7,10 @@ Please feel free to connect with me on Twitter (@ryanbooz) to provide any feedba
 ---
 ## PostgreSQL related talks (often more recent)
 
+ ### [__Logging with Purpose: Finding and Fixing Slow Queries in Postgres__](https://github.com/ryanbooz/Presentations/tree/master/Logging%20With%20Purpose) ###
+ * Chicago PUG (January 2026)
+ 
+
 ### [__PostgreSQL for the SQL Server DBA__](https://github.com/ryanbooz/Presentations/tree/master/Postgres%20for%20the%20SQL%20Server%20DBA) ###
  * SQL Data Saturday LA (June 2021)
  * DBA Fundamentals Virtual Meetup (August 2021)
